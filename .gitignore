@@ -1,0 +1,11 @@
+# Ignorar configuraciones personales de VS Code
+.vscode/
+
+# Ignorar archivos de compilación
+/build/
+/bin/
+
+# Ignorar archivos temporales
+*.log
+*.tmp
+*.swp
