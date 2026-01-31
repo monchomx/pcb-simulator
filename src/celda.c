@@ -7,13 +7,33 @@
 static void celda_destroy_wrapper(Component *comp);
 static int celda_update(Component *comp, SDL_Event *event);
 
-// Inicializar celda (no utilizado actualmente)
-static void celda_init(Component *comp, int x, int y, int size) {
+void celda_init(Celda *celda, int x, int y, int size) {
+    Component *comp = &celda->base;
+
     comp->pos.x = x;
     comp->pos.y = y;
     comp->size.width = size;
     comp->size.height = size;
     comp->visible = 1;
+
+    celda->texture_id = TEXTURE_EMPTY;
+    celda->status_flags = FLAG_DEFAULT_NONE;
+}
+
+static int celda_point_in_rect(Component *comp, int x, int y) {
+    return (x >= comp->pos.x && x < comp->pos.x + comp->size.width &&
+            y >= comp->pos.y && y < comp->pos.y + comp->size.height);
+}
+
+static void celda_render_texture(SDL_Renderer *renderer, SDL_Texture *atlas, TextureRef *tex_ref, SDL_Rect *dest_rect) {
+    if (!tex_ref || !atlas) return;
+
+    if (tex_ref->rotation_degrees != 0) {
+        SDL_RenderCopyEx(renderer, atlas, &tex_ref->src_rect, dest_rect,
+                         tex_ref->rotation_degrees, NULL, SDL_FLIP_NONE);
+    } else {
+        SDL_RenderCopy(renderer, atlas, &tex_ref->src_rect, dest_rect);
+    }
 }
 
 // Renderizar celda con su textura
@@ -25,29 +45,14 @@ static int celda_paint(Component *comp, SDL_Renderer *renderer) {
     // Obtener la textura del atlas
     TextureRef *tex_ref = assets_get_texture(celda->texture_id);
     SDL_Texture *atlas = assets_get_atlas_texture();
-    
-    if (!tex_ref || !atlas) {
-        // Fallback a rectángulo blanco si no hay textura
-        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-        SDL_RenderFillRect(renderer, &dest_rect);
-        return 0;
-    }
-    
+
     // Renderizar la textura del atlas
-    // Si hay rotación, usar SDL_RenderCopyEx
-    if (tex_ref->rotation_degrees != 0) {
-        SDL_RenderCopyEx(renderer, atlas, &tex_ref->src_rect, &dest_rect, 
-                         tex_ref->rotation_degrees, NULL, SDL_FLIP_NONE);
-    } else {
-        SDL_RenderCopy(renderer, atlas, &tex_ref->src_rect, &dest_rect);
-    }
+    celda_render_texture(renderer, atlas, tex_ref, &dest_rect);
     
     // Si tiene FLAG_MOUSE_HOVER, dibujar V_HOVER encima
     if (celda->status_flags & FLAG_MOUSE_HOVER) {
         TextureRef *hover_tex = assets_get_texture(TEXTURE_V_HOVER);
-        if (hover_tex) {
-            SDL_RenderCopy(renderer, atlas, &hover_tex->src_rect, &dest_rect);
-        }
+        celda_render_texture(renderer, atlas, hover_tex, &dest_rect);
     }
     
     return 0;
@@ -62,8 +67,7 @@ static int celda_update(Component *comp, SDL_Event *event) {
         int my = event->motion.y;
         
         // Verificar si el mouse está dentro de esta celda
-        if (mx >= comp->pos.x && mx < comp->pos.x + comp->size.width &&
-            my >= comp->pos.y && my < comp->pos.y + comp->size.height) {
+        if (celda_point_in_rect(comp, mx, my)) {
             celda->status_flags |= FLAG_MOUSE_HOVER;
         } else {
             celda->status_flags &= ~FLAG_MOUSE_HOVER;
@@ -83,20 +87,13 @@ Celda* celda_create(int x, int y, int size) {
     // Inicializar como componente (esto registra en el array global)
     component_init(comp);
     
-    // Establecer posición y tamaño
-    comp->pos.x = x;
-    comp->pos.y = y;
-    comp->size.width = size;
-    comp->size.height = size;
+    // Inicializar datos base de celda
+    celda_init(celda, x, y, size);
     
     // Sobrescribir paint y destroy con los personalizados
     comp->paint = celda_paint;
     comp->destroy = celda_destroy_wrapper;
     comp->update = celda_update;
-    
-    // Inicializar datos de celda
-    celda->texture_id = TEXTURE_EMPTY;
-    celda->status_flags = FLAG_DEFAULT_NONE;
     
     return celda;
 }

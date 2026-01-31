@@ -1,5 +1,6 @@
 // assets.c
 #include "assets.h"
+#include "context.h"
 #include <SDL2/SDL_image.h>
 #include <string.h>
 #include <stdio.h>
@@ -144,21 +145,28 @@ static void assets_init_texture_table() {
 // -----------------------------------------------
 // Cargar assets
 // -----------------------------------------------
-void assets_load(SDL_Renderer *renderer) {
+int assets_load(void) {
     // Cargar atlas
     SDL_Surface *surf = IMG_Load("./resources/textures/atlas.png");
-    if (surf) {
-        g_atlas_texture = SDL_CreateTextureFromSurface(renderer, surf);
-        SDL_FreeSurface(surf);
-        printf("[Assets] Atlas cargado: %dx%d\n", ATLAS_WIDTH, ATLAS_HEIGHT);
-    } else {
+    if (!surf) {
         printf("[Assets] Error al cargar atlas.png\n");
-        return;
+        return 0;
     }
-    
+
+    g_atlas_texture = SDL_CreateTextureFromSurface(ctx.renderer, surf);
+    SDL_FreeSurface(surf);
+
+    if (!g_atlas_texture) {
+        printf("[Assets] Error al crear textura del atlas\n");
+        return 0;
+    }
+
+    printf("[Assets] Atlas cargado: %dx%d\n", ATLAS_WIDTH, ATLAS_HEIGHT);
+
     // Inicializar tabla de texturas
     assets_init_texture_table();
     printf("[Assets] %d texturas precargadas\n", TEXTURE_COUNT);
+    return 1;
 }
 
 // -----------------------------------------------

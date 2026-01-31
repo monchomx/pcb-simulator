@@ -65,7 +65,7 @@ typedef struct {
 // -----------------------------------------------
 // Funciones públicas
 // -----------------------------------------------
-void assets_load(SDL_Renderer *renderer);
+int assets_load(void);
 void assets_free();
 
 // Obtener referencia a textura por ID

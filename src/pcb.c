@@ -11,9 +11,11 @@ static int *g_cell_map = NULL;
 static int g_cell_map_size = 0;
 
 // Inicializar PCB
-static void pcb_init(Component *comp, int cols, int rows) {
+void pcb_init(PCB *pcb, int cols, int rows) {
+    Component *comp = &pcb->base;
+
     comp->visible = 1;
-    
+
     // Calcular tamaño total: sin padding, exactamente (cols * CELL_SIZE) x (rows * CELL_SIZE)
     comp->size.width = cols * CELL_SIZE;
     comp->size.height = rows * CELL_SIZE;
@@ -50,7 +52,7 @@ PCB* pcb_create(int parentId, Position pos, int cols, int rows) {
     comp->pos = pos;
     
     // Inicializar datos de PCB
-    pcb_init(comp, cols, rows);
+    pcb_init(pcb, cols, rows);
     pcb->rows = rows;
     pcb->cols = cols;
     pcb->cell_size = CELL_SIZE;

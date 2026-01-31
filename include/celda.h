@@ -20,6 +20,9 @@ typedef struct {
 // Crear una celda
 Celda* celda_create(int x, int y, int size);
 
+// Inicializar celda (uso interno/avanzado)
+void celda_init(Celda *celda, int x, int y, int size);
+
 // Destruir celda
 void celda_destroy(Celda *celda);
 

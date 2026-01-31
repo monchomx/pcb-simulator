@@ -30,7 +30,7 @@ GUI* gui_create() {
 
     // Crear PCB dentro del canvas (20 columnas x 10 renglones de 11x11)
     // Por defecto todas las celdas inician con TEXTURE_EMPTY
-    PCB *pcb = pcb_create(g_gui.canvas->base.id, (Position){10, 10}, 20, 10);
+    pcb_create(g_gui.canvas->base.id, (Position){10, 10}, 20, 10);
 
     // Crear viewport que muestra el canvas
     g_gui.viewport = viewportpanel_create(g_gui.rootPanel->base.id,

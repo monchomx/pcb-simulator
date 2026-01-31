@@ -16,6 +16,9 @@ typedef struct {
 // Crear PCB (siguiendo patrón de componentes: parentId, pos, cols, rows)
 PCB* pcb_create(int parentId, Position pos, int cols, int rows);
 
+// Inicializar PCB (uso interno/avanzado)
+void pcb_init(PCB *pcb, int cols, int rows);
+
 // Destruir PCB
 void pcb_destroy(PCB *pcb);
 

@@ -14,7 +14,10 @@ int main(int argc, char *argv[]) {
 
     // Inicializar tema y assets
     theme_init_default();
-    assets_load(ctx.renderer);
+    if (!assets_load()) {
+        context_destroy();
+        return -1;
+    }
 
     // Crear GUI
     if (!gui_create()) {
