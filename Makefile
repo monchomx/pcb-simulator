@@ -8,7 +8,8 @@ INC_DIR   = include
 # Compilador y Flags
 CC       = gcc
 CFLAGS   = -Wall -g -I$(INC_DIR)
-LDFLAGS  = -lmingw32 -lSDL2main -lSDL2
+#-fexec-charset=UTF-8 
+LDFLAGS  = -lmingw32 -lSDL2main -lSDL2_image -lSDL2_ttf -lSDL2
 
 # Archivos del Proyecto
 # Filtramos main.c de los objetos de prueba para evitar conflictos de múltiples "main"

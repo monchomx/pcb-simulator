@@ -9,3 +9,6 @@
 *.log
 *.tmp
 *.swp
+REFACTORING.md
+THEME_GUIDE.md
+ARCHITECTURE.md
