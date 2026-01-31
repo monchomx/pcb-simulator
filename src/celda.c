@@ -3,8 +3,9 @@
 #include "context.h"
 #include <stdlib.h>
 
-// Forward declaration
+// Forward declarations
 static void celda_destroy_wrapper(Component *comp);
+static int celda_update(Component *comp, SDL_Event *event);
 
 // Inicializar celda (no utilizado actualmente)
 static void celda_init(Component *comp, int x, int y, int size) {
@@ -41,6 +42,34 @@ static int celda_paint(Component *comp, SDL_Renderer *renderer) {
         SDL_RenderCopy(renderer, atlas, &tex_ref->src_rect, &dest_rect);
     }
     
+    // Si tiene FLAG_MOUSE_HOVER, dibujar V_HOVER encima
+    if (celda->status_flags & FLAG_MOUSE_HOVER) {
+        TextureRef *hover_tex = assets_get_texture(TEXTURE_V_HOVER);
+        if (hover_tex) {
+            SDL_RenderCopy(renderer, atlas, &hover_tex->src_rect, &dest_rect);
+        }
+    }
+    
+    return 0;
+}
+
+// Actualizar celda (detectar eventos)
+static int celda_update(Component *comp, SDL_Event *event) {
+    Celda *celda = (Celda*)comp;
+    
+    if (event->type == SDL_MOUSEMOTION) {
+        int mx = event->motion.x;
+        int my = event->motion.y;
+        
+        // Verificar si el mouse está dentro de esta celda
+        if (mx >= comp->pos.x && mx < comp->pos.x + comp->size.width &&
+            my >= comp->pos.y && my < comp->pos.y + comp->size.height) {
+            celda->status_flags |= FLAG_MOUSE_HOVER;
+        } else {
+            celda->status_flags &= ~FLAG_MOUSE_HOVER;
+        }
+    }
+    
     return 0;
 }
 
@@ -63,10 +92,11 @@ Celda* celda_create(int x, int y, int size) {
     // Sobrescribir paint y destroy con los personalizados
     comp->paint = celda_paint;
     comp->destroy = celda_destroy_wrapper;
+    comp->update = celda_update;
     
     // Inicializar datos de celda
     celda->texture_id = TEXTURE_EMPTY;
-    celda->direction_flags = 0;
+    celda->status_flags = FLAG_DEFAULT_NONE;
     
     return celda;
 }

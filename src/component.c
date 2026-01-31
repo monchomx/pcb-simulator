@@ -46,7 +46,19 @@ int component_propagate_event_to_children(Component *self, SDL_Event *event) {
     for (int i = 0; i < self->childCount; i++) {
         Component *child = findComponentById(self->childIds[i]);
         if (child && child->update) {
+            // Guardar posición original
+            int origX = child->pos.x;
+            int origY = child->pos.y;
+
+            // Aplicar offset del padre
+            child->pos.x += self->pos.x;
+            child->pos.y += self->pos.y;
+
             int consumed = child->update(child, event);
+
+            // Restaurar posición original
+            child->pos.x = origX;
+            child->pos.y = origY;
             if (consumed) return 1;
         }
     }

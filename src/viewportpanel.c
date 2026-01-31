@@ -1,6 +1,9 @@
 #include "viewportpanel.h"
 #include <SDL2/SDL.h>
 #include <stdlib.h>
+#include <math.h>
+
+static int viewportpanel_handle_mouse_event(ViewportPanel *vp, Component *self, SDL_Event *event);
 
 ViewportPanel* viewportpanel_create(int parentId, Position pos, Size size, Panel *inner) {
     ViewportPanel *vp = (ViewportPanel*)malloc(sizeof(ViewportPanel));
@@ -26,7 +29,7 @@ ViewportPanel* viewportpanel_create(int parentId, Position pos, Size size, Panel
 void viewportpanel_init(ViewportPanel *vp) {
     component_init((Component*)vp);
 
-    vp->zoomLevel = 1;
+    vp->zoomLevel = 3; // Zoom default
     vp->offsetX = 0;
     vp->offsetY = 0;
 
@@ -38,13 +41,32 @@ void viewportpanel_init(ViewportPanel *vp) {
 
 int viewportpanel_update(Component *self, SDL_Event *event) {
     ViewportPanel *vp = (ViewportPanel*)self;
+    
     if (event->type == SDL_MOUSEWHEEL) {
         const Uint8 *keys = SDL_GetKeyboardState(NULL);
 
         if (keys[SDL_SCANCODE_LCTRL] || keys[SDL_SCANCODE_RCTRL]) {
-            // Zoom
-            if (event->wheel.y > 0) vp->zoomLevel++;
-            else if (event->wheel.y < 0 && vp->zoomLevel > 1) vp->zoomLevel--;
+            // Zoom centrado en el mouse
+            int mouse_x = 0, mouse_y = 0;
+            SDL_GetMouseState(&mouse_x, &mouse_y);
+
+            float oldScale = (vp->zoomLevel > 0) ? (vp->zoomLevel / 3.0f) : 1.0f;
+
+            int newZoom = vp->zoomLevel;
+            if (event->wheel.y > 0) newZoom++;
+            else if (event->wheel.y < 0 && vp->zoomLevel > 1) newZoom--;
+
+            float newScale = (newZoom > 0) ? (newZoom / 3.0f) : 1.0f;
+
+            // Coordenadas del mundo bajo el mouse antes del zoom
+            float world_x = (mouse_x / oldScale) - self->pos.x - vp->offsetX;
+            float world_y = (mouse_y / oldScale) - self->pos.y - vp->offsetY;
+
+            // Ajustar offsets para mantener el punto bajo el mouse
+            vp->offsetX = (int)lroundf((mouse_x / newScale) - self->pos.x - world_x);
+            vp->offsetY = (int)lroundf((mouse_y / newScale) - self->pos.y - world_y);
+
+            vp->zoomLevel = newZoom;
         }
         else if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) {
             // Desplazamiento horizontal
@@ -56,11 +78,87 @@ int viewportpanel_update(Component *self, SDL_Event *event) {
             if (event->wheel.y > 0) vp->offsetY += 20;
             else if (event->wheel.y < 0) vp->offsetY -= 20;
         }
+        // Forzar actualización de hover con la posición actual del mouse
+        int mx = 0, my = 0;
+        SDL_GetMouseState(&mx, &my);
+        SDL_Event hoverEvent;
+        hoverEvent.type = SDL_MOUSEMOTION;
+        hoverEvent.motion.x = mx;
+        hoverEvent.motion.y = my;
+        (void)viewportpanel_handle_mouse_event(vp, self, &hoverEvent);
+
         return 1; // consumir evento
+    }
+
+    // Para eventos de mouse, ajustar por zoom y propagar al inner con su posición efectiva
+    if (event->type == SDL_MOUSEMOTION || event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP) {
+        return viewportpanel_handle_mouse_event(vp, self, event);
     }
 
     // Propagar eventos usando helper
     return component_propagate_event_to_children(self, event);
+}
+
+static int viewportpanel_handle_mouse_event(ViewportPanel *vp, Component *self, SDL_Event *event) {
+    float z = (vp->zoomLevel > 0) ? (vp->zoomLevel / 3.0f) : 1.0f;
+
+    if (event->type == SDL_MOUSEMOTION) {
+        int orig_x = event->motion.x;
+        int orig_y = event->motion.y;
+
+        event->motion.x = (int)(orig_x / z);
+        event->motion.y = (int)(orig_y / z);
+
+        int oldX = vp->inner ? vp->inner->base.pos.x : 0;
+        int oldY = vp->inner ? vp->inner->base.pos.y : 0;
+
+        if (vp->inner) {
+            vp->inner->base.pos.x = self->pos.x + vp->offsetX;
+            vp->inner->base.pos.y = self->pos.y + vp->offsetY;
+        }
+
+        int result = 0;
+        if (vp->inner && vp->inner->base.update) {
+            result = vp->inner->base.update((Component*)vp->inner, event);
+        }
+
+        if (vp->inner) {
+            vp->inner->base.pos.x = oldX;
+            vp->inner->base.pos.y = oldY;
+        }
+
+        event->motion.x = orig_x;
+        event->motion.y = orig_y;
+        return result;
+    }
+
+    int orig_x = event->button.x;
+    int orig_y = event->button.y;
+
+    event->button.x = (int)(orig_x / z);
+    event->button.y = (int)(orig_y / z);
+
+    int oldX = vp->inner ? vp->inner->base.pos.x : 0;
+    int oldY = vp->inner ? vp->inner->base.pos.y : 0;
+
+    if (vp->inner) {
+        vp->inner->base.pos.x = self->pos.x + vp->offsetX;
+        vp->inner->base.pos.y = self->pos.y + vp->offsetY;
+    }
+
+    int result = 0;
+    if (vp->inner && vp->inner->base.update) {
+        result = vp->inner->base.update((Component*)vp->inner, event);
+    }
+
+    if (vp->inner) {
+        vp->inner->base.pos.x = oldX;
+        vp->inner->base.pos.y = oldY;
+    }
+
+    event->button.x = orig_x;
+    event->button.y = orig_y;
+    return result;
 }
 
 int viewportpanel_paint(Component *self, SDL_Renderer *renderer) {
@@ -91,7 +189,9 @@ int viewportpanel_paint(Component *self, SDL_Renderer *renderer) {
     vp->inner->base.pos.y = self->pos.y + vp->offsetY;
 
     // Aplicar zoom
-    SDL_RenderSetScale(renderer, vp->zoomLevel, vp->zoomLevel);
+        // Aplicar zoom (nivel 3 = 100%)
+        float zoomScale = (vp->zoomLevel > 0) ? (vp->zoomLevel / 3.0f) : 1.0f;
+        SDL_RenderSetScale(renderer, zoomScale, zoomScale);
 
     // Pintar el panel interno
     int consumed = 0;

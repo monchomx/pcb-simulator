@@ -27,6 +27,12 @@ static int pcb_paint(Component *comp, SDL_Renderer *renderer) {
     return 0;
 }
 
+// Actualizar PCB (transformar eventos de mouse)
+static int pcb_update(Component *comp, SDL_Event *event) {
+    // Propagar eventos a hijos (celdas)
+    return component_propagate_event_to_children(comp, event);
+}
+
 // Crear PCB
 PCB* pcb_create(int parentId, Position pos, int cols, int rows) {
     PCB *pcb = (PCB*)malloc(sizeof(PCB));
@@ -49,8 +55,9 @@ PCB* pcb_create(int parentId, Position pos, int cols, int rows) {
     pcb->cols = cols;
     pcb->cell_size = CELL_SIZE;
     
-    // Sobrescribir paint con el personalizado del PCB
+    // Sobrescribir paint y update con los personalizados del PCB
     comp->paint = pcb_paint;
+    comp->update = pcb_update;
     
     // Agregar como child del padre si existe
     if (parentId > 0) {

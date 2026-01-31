@@ -7,10 +7,14 @@
 // Celda: una celda del tablero PCB
 // Cada celda tiene una textura asignada (borde, relleno, etc.)
 
+// Status flags para celda
+#define FLAG_DEFAULT_NONE   0x00
+#define FLAG_MOUSE_HOVER    0x01
+
 typedef struct {
     Component base;
     TextureID texture_id;    // Textura actualmente mostrada
-    int direction_flags;     // Flags de dirección (para trace drawing)
+    int status_flags;        // Flags de estado (hover, selección, etc.)
 } Celda;
 
 // Crear una celda
