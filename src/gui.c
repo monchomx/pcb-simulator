@@ -16,9 +16,9 @@ GUI* gui_create() {
     g_gui.rootPanel = panel_create(0, (Position){0, 0}, (Size){ctx.width, ctx.height});
     if (!g_gui.rootPanel) return NULL;
 
-    // Panel canvas interno grande (ej. canvas de 1000x1000)
+    // Panel canvas interno grande (ej. canvas de 800x480)
     // IMPORTANTE: Sin padre (0) porque será hijo del viewport
-    g_gui.canvas = panel_create(0, (Position){0, 0}, (Size){1000, 1000});
+    g_gui.canvas = panel_create(0, (Position){10, 10}, (Size){800, 480});
     if (!g_gui.canvas) {
         g_gui.rootPanel->base.destroy((Component*)g_gui.rootPanel);
         return NULL;
@@ -28,14 +28,14 @@ GUI* gui_create() {
     panel_set_bg_color(g_gui.canvas, (Color){255, 255, 255, 255});
     panel_set_border_color(g_gui.canvas, (Color){220, 220, 220, 255});
 
-    // Crear PCB dentro del canvas (20x10 celdas de 11x11)
+    // Crear PCB dentro del canvas (20 columnas x 10 renglones de 11x11)
     // Por defecto todas las celdas inician con TEXTURE_EMPTY
     PCB *pcb = pcb_create(g_gui.canvas->base.id, (Position){10, 10}, 20, 10);
 
     // Crear viewport que muestra el canvas
     g_gui.viewport = viewportpanel_create(g_gui.rootPanel->base.id,
                                           (Position){50, 50},
-                                          (Size){600, 500},
+                                          (Size){700, 500},
                                           g_gui.canvas);
     if (!g_gui.viewport) {
         g_gui.rootPanel->base.destroy((Component*)g_gui.rootPanel);

@@ -13,8 +13,8 @@ typedef struct {
     int cell_size;
 } PCB;
 
-// Crear PCB (siguiendo patrón de componentes: parentId, pos, rows, cols)
-PCB* pcb_create(int parentId, Position pos, int rows, int cols);
+// Crear PCB (siguiendo patrón de componentes: parentId, pos, cols, rows)
+PCB* pcb_create(int parentId, Position pos, int cols, int rows);
 
 // Destruir PCB
 void pcb_destroy(PCB *pcb);

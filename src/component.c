@@ -211,14 +211,7 @@ int component_paint(Component *self, SDL_Renderer *renderer) {
         }
     }
 
-    // Borde
-    SDL_SetRenderDrawColor(renderer,
-                           currentTheme.panel_border.r,
-                           currentTheme.panel_border.g,
-                           currentTheme.panel_border.b,
-                           currentTheme.panel_border.a);
-    SDL_RenderDrawRect(renderer, &dstRect);
-
+    
     // Pintar hijos usando helper
     component_paint_children(self, renderer);
     return 1;

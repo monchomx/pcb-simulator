@@ -3,7 +3,10 @@
 #include "context.h"
 #include <stdlib.h>
 
-// Inicializar celda
+// Forward declaration
+static void celda_destroy_wrapper(Component *comp);
+
+// Inicializar celda (no utilizado actualmente)
 static void celda_init(Component *comp, int x, int y, int size) {
     comp->pos.x = x;
     comp->pos.y = y;
@@ -16,27 +19,27 @@ static void celda_init(Component *comp, int x, int y, int size) {
 static int celda_paint(Component *comp, SDL_Renderer *renderer) {
     Celda *celda = (Celda*)comp;
     
-    // Obtener referencia a textura
-    TextureRef *tex_ref = assets_get_texture(celda->texture_id);
-    if (!tex_ref) return 0;
-    
-    // Obtener atlas
-    SDL_Texture *atlas = assets_get_atlas_texture();
-    if (!atlas) return 0;
-    
-    // Rectángulo de destino en pantalla
     SDL_Rect dest_rect = {comp->pos.x, comp->pos.y, comp->size.width, comp->size.height};
     
-    // Renderizar con rotación si es necesaria
-    if (tex_ref->rotation_degrees == 0) {
-        SDL_RenderCopy(renderer, atlas, &tex_ref->src_rect, &dest_rect);
-    } else {
-        SDL_RenderCopyEx(renderer, atlas, &tex_ref->src_rect, &dest_rect,
-                        tex_ref->rotation_degrees, NULL, SDL_FLIP_NONE);
+    // Obtener la textura del atlas
+    TextureRef *tex_ref = assets_get_texture(celda->texture_id);
+    SDL_Texture *atlas = assets_get_atlas_texture();
+    
+    if (!tex_ref || !atlas) {
+        // Fallback a rectángulo blanco si no hay textura
+        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+        SDL_RenderFillRect(renderer, &dest_rect);
+        return 0;
     }
     
-    // Renderizar children (si hay)
-    component_paint_children(comp, renderer);
+    // Renderizar la textura del atlas
+    // Si hay rotación, usar SDL_RenderCopyEx
+    if (tex_ref->rotation_degrees != 0) {
+        SDL_RenderCopyEx(renderer, atlas, &tex_ref->src_rect, &dest_rect, 
+                         tex_ref->rotation_degrees, NULL, SDL_FLIP_NONE);
+    } else {
+        SDL_RenderCopy(renderer, atlas, &tex_ref->src_rect, &dest_rect);
+    }
     
     return 0;
 }
@@ -46,39 +49,33 @@ Celda* celda_create(int x, int y, int size) {
     Celda *celda = (Celda*)malloc(sizeof(Celda));
     if (!celda) return NULL;
     
-    // Inicializar como componente
     Component *comp = &celda->base;
-    comp->parentId = 0;
-    comp->childCount = 0;
-    comp->texture = NULL;
-    comp->text = NULL;
-    comp->font = NULL;
-    comp->onClick = NULL;
-    comp->onHover = NULL;
-    comp->onPress = NULL;
-    comp->onRelease = NULL;
     
-    // Establecer métodos
-    comp->update = NULL;
+    // Inicializar como componente (esto registra en el array global)
+    component_init(comp);
+    
+    // Establecer posición y tamaño
+    comp->pos.x = x;
+    comp->pos.y = y;
+    comp->size.width = size;
+    comp->size.height = size;
+    
+    // Sobrescribir paint y destroy con los personalizados
     comp->paint = celda_paint;
-    comp->destroy = (void(*)(Component*))celda_destroy;
+    comp->destroy = celda_destroy_wrapper;
     
     // Inicializar datos de celda
-    celda_init(comp, x, y, size);
     celda->texture_id = TEXTURE_EMPTY;
     celda->direction_flags = 0;
-    
-    // Registrar en array global
-    comp->id = generateId();
     
     return celda;
 }
 
-// Destruir celda
-void celda_destroy(Celda *celda) {
-    if (!celda) return;
+// Wrapper para destroy que recibe Component*
+static void celda_destroy_wrapper(Component *comp) {
+    if (!comp) return;
     
-    Component *comp = &celda->base;
+    Celda *celda = (Celda*)comp;
     
     // Remover del array global
     removeComponentFromGlobalArray(comp);
@@ -92,6 +89,12 @@ void celda_destroy(Celda *celda) {
     }
     
     free(celda);
+}
+
+// Destruir celda
+void celda_destroy(Celda *celda) {
+    if (!celda) return;
+    celda_destroy_wrapper(&celda->base);
 }
 
 // Establecer textura
